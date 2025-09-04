@@ -11,14 +11,21 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
 - 🔍 **Busca e Adição**: Inserção direta de links do YouTube ou busca integrada
 - 📺 **Reprodução Unificada**: Player centralizado com vídeo, áudio e legendas
 - 👥 **Experiência Multiusuário**: Fila compartilhada em tempo real
-- 🎛️ **Controle Administrativo**: Gerenciamento completo da sessão
+- 🎛️ **Controle de Host**: Gerenciamento completo da sessão
 - 📱 **Compatibilidade Cross-Device**: Funciona em smartphones, tablets e desktops
 
 ### 👤 Tipos de Usuário
 | Tipo | Permissões | Interface |
 |------|------------|-----------|
-| **👤 Usuário** | Adicionar músicas à fila | Busca + botão "Adicionar" |
-| **👑 Administrador** | Controle total da sessão | Painel de controle completo |
+| **👤 Usuário** | Adicionar e editar próprias músicas | Busca + botão "Adicionar" + editar |
+| **👑 Host** | Controle total da sessão | Painel de controle completo |
+
+### 🔑 Sistema de Host
+- **Acesso Host**: Rota específica protegida por chave armazenada no Redis
+- **Chave de Acesso**: Gerada dinamicamente e válida por sessão
+- **Sem Autenticação**: Não requer login/senha, apenas posse da chave
+- **Controle Total**: Host pode pular, remover, reordenar músicas da fila
+- **Interface Exclusiva**: Acesso ao painel de controle com visualização de vídeos
 
 ---
 
@@ -29,11 +36,12 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
 - [ ] **Reprodução Automática**: Player YouTube IFrame API oficial
 - [ ] **Fila Compartilhada**: Sistema FIFO com persistência em Redis
 - [ ] **Sincronização Real-time**: Atualizações instantâneas via WebSocket
-- [ ] **Controle Administrativo**: Pular, remover e reordenar músicas
+- [ ] **Controle de Host**: Pular, remover e reordenar músicas
+- [ ] **Edição de Músicas Próprias**: Usuários podem editar apenas suas próprias músicas (localStorage)
 
 ### 🎨 Interfaces do Usuário
-- [ ] **Interface Usuário**: Campo de busca + botão de adição
-- [ ] **Interface ADM**: Lista da fila + controles de gerenciamento
+- [ ] **Interface Usuário**: Campo de busca + botão de adição + editar próprias músicas
+- [ ] **Interface Host**: Lista da fila + controles de gerenciamento
 - [ ] **Responsividade**: Design adaptável para todos os dispositivos
 
 ---
@@ -45,7 +53,7 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
 │                           🌐 CLIENT LAYER                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────┐   │
-│  │   👤 User UI    │ │   👑 Admin UI   │ │  📱 Mobile/Tablet    │   │
+│  │   👤 User UI    │ │   👑 Host UI    │ │  📱 Mobile/Tablet    │   │
 │  │                 │ │                 │ │                       │   │
 │  │ • Busca música  │ │ • Controle fila │ │ • Interface responsiva│   │
 │  │ • Adiciona fila │ │ • Skip/Remove   │ │ • Touch controls      │   │
@@ -118,7 +126,7 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
         ↓
 👥 Todos os clientes atualizam em tempo real
         ↓
-🎵 ADM controla reprodução via YouTube API
+🎵 Host controla reprodução via YouTube API
 ```
 
 ---
@@ -138,7 +146,7 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
 
 #### 📱 Interfaces Implementadas
 - **Interface Usuário**: Busca inteligente + preview de vídeo + botão de adição
-- **Interface ADM**: Lista ordenada + controles (play/pause/skip/remove) + estatísticas
+- **Interface Host**: Lista ordenada + controles (play/pause/skip/remove) + estatísticas
 
 ### ⚙️ 2. Backend (Node.js)
 | Componente | Tecnologia | Responsabilidade |
@@ -150,15 +158,17 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
 | **CORS** | cors middleware | Controle de acesso cross-origin |
 | **Rate Limiting** | express-rate-limit | Proteção contra abuso |
 
-#### 🔐 Sistema de Autenticação
-- **Admin**: Configuração via variável de ambiente (simples para uso pessoal)
-- **Users**: Sessão baseada em Socket.IO (sem autenticação complexa)
+#### 🔐 Sistema de Controle de Acesso
+- **Host**: Acesso via rota protegida por chave dinâmica armazenada no Redis
+- **Users**: Identificação via localStorage (sem autenticação, apenas rastreamento)
+- **Edição Própria**: Usuários podem editar apenas músicas identificadas por seu fingerprint localStorage
 
 ### 🗄️ 3. Redis (Cache & Storage)
 | Uso | Estrutura | Persistência |
 |-----|------------|--------------|
 | **Queue Storage** | Lista ordenada de Song IDs | Persistente |
 | **Song Metadata** | Hash com dados da música | Persistente |
+| **Host Key** | Chave de acesso para controle host | Temporário (por sessão) |
 | **Session State** | Estado atual da reprodução | Temporário |
 | **User Sessions** | Conexões ativas | Temporário |
 
@@ -177,6 +187,7 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
   "thumbnail_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
   "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   "added_by": "user_session_id",
+  "user_fingerprint": "localStorage_identifier",
   "added_at": "2024-01-15T20:30:45.123Z",
   "status": "queued|playing|played"
 }
@@ -202,7 +213,7 @@ O **Sistema de Karaoke** é uma aplicação web moderna e responsiva desenvolvid
 {
   "session_id": "socket_session_uuid",
   "username": "João Silva",
-  "role": "admin|user",
+  "role": "host|user",
   "device_type": "mobile|desktop|tablet",
   "connected_at": "2024-01-15T20:30:45.123Z",
   "last_activity": "2024-01-15T20:35:12.456Z",
@@ -341,7 +352,7 @@ FROM node:18-alpine AS runtime
 - [ ] **Real-time Sync**: Broadcast de atualizações
 
 ### 🚀 Fase 2: Funcionalidades Essenciais (1-2 semanas)
-- [ ] **Admin Controls**: Skip, remove, reorder
+- [ ] **Host Controls**: Skip, remove, reorder
 - [ ] **User Interface**: Busca e preview de vídeos
 - [ ] **Queue Persistence**: Sobrevivência a reinícios
 - [ ] **Error Handling**: Tratamento robusto de erros
