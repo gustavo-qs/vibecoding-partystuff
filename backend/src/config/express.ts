@@ -11,21 +11,54 @@ import { httpLogger } from '../middleware/http-logger';
 export const configureExpress = (app: express.Application) => {
   logWithContext.info('🔧 Configuring Express middlewares...');
 
-  // Segurança
-  app.use(helmet());
-  logWithContext.debug('🛡️ Helmet security middleware configured');
+  // Segurança - Configurado para permitir CORS
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", CONFIG.CORS_ORIGIN],
+      },
+    },
+  }));
+  logWithContext.debug('🛡️ Helmet security middleware configured with CORS support');
 
   app.use(compression());
   logWithContext.debug('🗜️ Compression middleware configured');
 
-  // CORS
-  app.use(cors({
-    origin: CONFIG.CORS_ORIGIN,
-    credentials: true
-  }));
+  // CORS - Configurado para desenvolvimento
+  const corsOptions = {
+    origin: function (origin: string | undefined, callback: Function) {
+      // Permitir requests sem origin (como mobile apps, curl requests)
+      if (!origin) return callback(null, true);
+
+      // Permitir localhost em qualquer porta para desenvolvimento
+      if (origin.match(/^http:\/\/localhost:\d+$/)) {
+        return callback(null, true);
+      }
+
+      // Permitir a origem configurada
+      if (origin === CONFIG.CORS_ORIGIN) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  };
+
+  app.use(cors(corsOptions));
   logWithContext.debug('🌐 CORS middleware configured', {
-    origin: CONFIG.CORS_ORIGIN,
-    credentials: true
+    origin: 'localhost:* and ' + CONFIG.CORS_ORIGIN,
+    credentials: true,
+    allowedMethods: corsOptions.methods
   });
 
   // Rate Limiting

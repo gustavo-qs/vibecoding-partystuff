@@ -23,8 +23,24 @@ export class SocketManager {
 
     this.io = new SocketServer(server, {
       cors: {
-        origin: CONFIG.CORS_ORIGIN,
-        methods: ['GET', 'POST']
+        origin: function (origin: string | undefined, callback: Function) {
+          // Permitir requests sem origin (como mobile apps, curl requests)
+          if (!origin) return callback(null, true);
+
+          // Permitir localhost em qualquer porta para desenvolvimento
+          if (origin && origin.match(/^http:\/\/localhost:\d+$/)) {
+            return callback(null, true);
+          }
+
+          // Permitir a origem configurada
+          if (origin === CONFIG.CORS_ORIGIN) {
+            return callback(null, true);
+          }
+
+          return callback(new Error('Not allowed by CORS'));
+        },
+        methods: ['GET', 'POST'],
+        credentials: true
       }
     });
 
