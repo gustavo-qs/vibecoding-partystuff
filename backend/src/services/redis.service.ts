@@ -6,14 +6,33 @@ export class RedisService {
 
   static getInstance(): RedisService {
     if (!RedisService.instance) {
-      RedisService.instance = new RedisService();
+      try {
+        RedisService.instance = new RedisService();
+        console.log('✅ RedisService singleton instance created');
+      } catch (error) {
+        console.error('❌ Failed to create RedisService instance:', error);
+        throw error;
+      }
     }
     return RedisService.instance;
   }
 
+  constructor() {
+    // Basic check if Redis client is available
+    if (!redisClient) {
+      throw new Error('Redis client not initialized');
+    }
+    console.log('✅ RedisService constructor completed');
+  }
+
   // Queue operations
   async addToQueue(songId: string): Promise<void> {
-    await redisClient.rPush('karaoke:queue', songId);
+    try {
+      await redisClient.rPush('karaoke:queue', songId);
+    } catch (error) {
+      console.error('❌ Redis addToQueue failed:', error);
+      throw error;
+    }
   }
 
   async removeFromQueue(songId: string): Promise<void> {
@@ -34,7 +53,20 @@ export class RedisService {
 
   // Song metadata operations
   async saveSong(song: Song): Promise<void> {
-    await redisClient.hSet(`karaoke:song:${song.id}`, song);
+    const songData = {
+      id: song.id,
+      youtube_id: song.youtube_id,
+      title: song.title,
+      channel: song.channel,
+      duration: song.duration,
+      thumbnail_url: song.thumbnail_url,
+      youtube_url: song.youtube_url,
+      added_by: song.added_by,
+      user_fingerprint: song.user_fingerprint,
+      added_at: song.added_at,
+      status: song.status
+    };
+    await redisClient.hSet(`karaoke:song:${song.id}`, songData);
     // Set expiration for song metadata (24 hours)
     await redisClient.expire(`karaoke:song:${song.id}`, 86400);
   }
@@ -95,7 +127,7 @@ export class RedisService {
 
   // Session management
   async setSessionData(sessionId: string, data: any): Promise<void> {
-    await redisClient.hSet(`karaoke:session:${sessionId}`, data);
+    await redisClient.hSet(`karaoke:session:${sessionId}`, data as Record<string, string>);
     await redisClient.expire(`karaoke:session:${sessionId}`, 86400); // 24 hours
   }
 

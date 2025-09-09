@@ -6,7 +6,20 @@ import { validateSongData } from '../utils/validation';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SongController {
-  private queueService = new QueueService();
+  private queueService: QueueService | null = null;
+
+  private async getQueueService(): Promise<QueueService> {
+    if (!this.queueService) {
+      try {
+        this.queueService = new QueueService();
+        console.log('✅ QueueService initialized successfully');
+      } catch (error) {
+        console.error('❌ Failed to initialize QueueService:', error);
+        throw new Error('Queue service is not available. Please check Redis connection.');
+      }
+    }
+    return this.queueService;
+  }
 
   async addSong(req: Request, res: Response): Promise<void> {
     try {
@@ -51,7 +64,8 @@ export class SongController {
         status: 'queued'
       };
 
-      await this.queueService.addSong(song);
+      const queueService = await this.getQueueService();
+      await queueService.addSong(song);
 
       const response: ApiResponse<Song> = {
         success: true,
@@ -72,7 +86,8 @@ export class SongController {
 
   async getQueue(req: Request, res: Response): Promise<void> {
     try {
-      const queueState = await this.queueService.getQueueState();
+      const queueService = await this.getQueueService();
+      const queueState = await queueService.getQueueState();
       const response: ApiResponse = {
         success: true,
         data: queueState
@@ -91,7 +106,8 @@ export class SongController {
   async getSong(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const queue = await this.queueService.getAllSongs();
+      const queueService = await this.getQueueService();
+      const queue = await queueService.getAllSongs();
       const song = queue.find(s => s.id === id);
 
       if (!song) {
@@ -121,7 +137,8 @@ export class SongController {
   async removeSong(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      await this.queueService.removeSong(id);
+      const queueService = await this.getQueueService();
+      await queueService.removeSong(id);
 
       const response: ApiResponse = {
         success: true,
@@ -140,7 +157,8 @@ export class SongController {
 
   async getAllSongs(req: Request, res: Response): Promise<void> {
     try {
-      const songs = await this.queueService.getAllSongs();
+      const queueService = await this.getQueueService();
+      const songs = await queueService.getAllSongs();
       const response: ApiResponse<Song[]> = {
         success: true,
         data: songs

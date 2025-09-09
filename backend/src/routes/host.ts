@@ -5,19 +5,19 @@ const router = Router();
 const hostController = new HostController();
 
 // Generate new host key
-router.post('/key', hostController.generateKey);
+router.post('/key', hostController.generateKey.bind(hostController));
 
 // Get current host key
-router.get('/key', hostController.getCurrentKey);
+router.get('/key', hostController.getCurrentKey.bind(hostController));
 
 // Renew host key
-router.put('/key', hostController.renewKey);
+router.put('/key', hostController.renewKey.bind(hostController));
 
 // Validate host key
-router.post('/validate', hostController.validateKey);
+router.post('/validate', hostController.validateKey.bind(hostController));
 
 // Host controls
-router.post('/skip', hostController.skipSong);
-router.delete('/songs/:songId', hostController.removeSong);
+router.post('/skip', hostController.skipSong.bind(hostController));
+router.delete('/songs/:songId', hostController.removeSong.bind(hostController));
 
 export default router;
