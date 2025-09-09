@@ -6,5 +6,6 @@ export const CONFIG = {
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
   RATE_LIMIT_WINDOW: parseInt(process.env.RATE_LIMIT_WINDOW || '15'),
-  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100')
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY || ''
 };
